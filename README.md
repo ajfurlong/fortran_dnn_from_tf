@@ -38,9 +38,7 @@ In the output of this script, there will be some performance statistics. Directl
 
 The dnn_module is designed to read the weights and biases of the TensorFlow model from a set of text files directly taken from the HDF5 file exported in the previous step. The script located in fortran_dnn_from_tf/models/ called convert_hdf5_txt.py performs this exact task. Run it in example/model and it will spit out a sinusoid_model_decomposed directory containing each layer's weights and biases in the same format as the HDF5 structure.
 
-   ```bash
    python convert_hdf5_txt.py path/to/your_model.h5
-   ```
 
 ### Step 3: Modify dnn_module.f90
 
@@ -48,21 +46,17 @@ This is where things get just a bit ugly. The first thing you will need to do is
 
 In load_weights(), the only thing that needs to be changed is each layer's array allocations, where X is the unique layer number:
 
-    ```
     ! Layer X
     allocate(network(X)%weights(layerX_size, input_size))
     allocate(network(X)%biases(layerX_size))
-    ```
 
 Now moving along to predict(), you will need to modify the daisy-chain of layers and how the information passes through them. The basic block is located below, which consists of allocating space in a temporary variable layer_output, performing the matrix multiplication with the weights and biases, and then applying the specified activation function. There are several to choose from like elu, relu, and tanh. These must match those that are present in the TensorFlow architecture, of course. Feel free to define your own above as well if they are not already included.
 
-    ```
     ! Layer X
     if (allocated(layer_output)) deallocate(layer_output)
     allocate(layer_output(layerX_size))
     layer_output = matmul(network(X)%weights, input) + network(X)%biases
     layer_output = activation_function(layer_output)
-    ```
 
 ### Step 4: Modify main.f90
 
@@ -80,17 +74,13 @@ If you've picked up on the pattern here, you will need to adjust things to fit t
 
 Head back out to the parent directory fortran_dnn_from_tf and compile with the Makefile. Ensure that you have the necessary packages installed: a Fortran compiler (gfortran) and HDF5. These are currently setup as they would be on macOS, but make modifications to the Makefile as needed.
 
-    ```bash
     make
-    ```
 
 This will produce an executable in the bin/ directory.
 
 ### Step 6: Run the Fortran Program
 
-    ```bash
     ./bin/main path/to/datafile num_data_points path/to/model/parentdir/ [options]
-    ```
 
 Options:
 standardize - applicable in most cases, standardizes your incoming data with the specified means/stds
@@ -99,9 +89,7 @@ debug - detailed information to determine where the issue lies
 
 In the case of the example, the number of entries in the testing set is 1000, and the data file that was exported contained physical values, which will need to be standardized.
 
-    ```bash
     ./bin/main example/data/sinusoid_test_data.h5 1000 example/model/sinusoid_model_decomposed standardize
-    ```
 
 The example is configured to be a "benchmark" example, which assumes that the outputs are known to compute error metrics for comparison to those generated in the TensorFlow implementation. All of the script components above can be easily altered in the case that you are trying to deploy the model in Fortran to predict novel points without known values. Obviously error metrics would not be available in that case.
 
