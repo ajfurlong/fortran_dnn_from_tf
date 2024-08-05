@@ -96,9 +96,9 @@ The example is configured to be a "benchmark" example, which assumes that the ou
 
 ## Future Enhancements
 
-   •	Support for Current TensorFlow Model Format: Implement compatibility with the current TensorFlow model save format for broader usability.
-   •	Automatic Data Length Detection: Enhance the HDF5 reader to automatically determine the data length, simplifying data preparation.
-   •	Fortran Model Conversion: Develop a Fortran subroutine to replace the Python conversion script, making the workflow more integrated.
-   •	Additional Activation Functions: Expand the set of supported activation functions to accommodate more complex models.
-   •	User-Specified Network Configuration: Allow users to define network architecture and parameters via an input file, improving flexibility.
-   •	OR: automatically takes the network structure/architecture from the model file and configures based on that.
+      •	Support for Current TensorFlow Model Format: Implement compatibility with the current TensorFlow model save format for broader usability.
+      •	Automatic Data Length Detection: Enhance the HDF5 reader to automatically determine the data length, simplifying data preparation.
+      •	Fortran Model Conversion: Develop a Fortran subroutine to replace the Python conversion script, making the workflow more integrated.
+      •	Additional Activation Functions: Expand the set of supported activation functions to accommodate more complex models.
+      •	User-Specified Network Configuration: Allow users to define network architecture and parameters via an input file, improving flexibility.
+      •	OR: automatically takes the network structure/architecture from the model file and configures based on that.
