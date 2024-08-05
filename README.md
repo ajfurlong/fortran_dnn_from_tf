@@ -38,7 +38,7 @@ In the output of this script, there will be some performance statistics. Directl
 
 The dnn_module is designed to read the weights and biases of the TensorFlow model from a set of text files directly taken from the HDF5 file exported in the previous step. The script located in fortran_dnn_from_tf/models/ called convert_hdf5_txt.py performs this exact task. Run it in example/model and it will spit out a sinusoid_model_decomposed directory containing each layer's weights and biases in the same format as the HDF5 structure.
 
-   python convert_hdf5_txt.py path/to/your_model.h5
+      python convert_hdf5_txt.py path/to/your_model.h5
 
 ### Step 3: Modify dnn_module.f90
 
