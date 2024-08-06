@@ -51,6 +51,7 @@ subroutine compute_metrics(y_data, y_pred, elapsed_time)
     ! print '(A, T20, I12)', "Ferr > 10% (#): ", ferr_above_10
     print '(A, T20, F12.6)', "R^2: ", r_squared
     print '(A)', "-----------------------------------------------------------------------"
+    print '(A, T20, I12)', "Total Predictions: ", size(relative_error)
     print '(A, T20, F12.6)', "Total CPU Time (s): ", elapsed_time
     print '(A)', "-----------------------------------------------------------------------"
 

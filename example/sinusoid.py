@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
 # Generate data with two inputs
-def generate_data(num_samples=5000, random_seed=42):
-    np.random.seed(random_seed)  # Set random seed for reproducibility
+def generate_data(num_samples=5000):
+    np.random.seed(1234)
+    tf.keras.utils.set_random_seed(1234)
 
     # Generate x1 and x2 values (arbitrary transformation)
     x1 = np.linspace(0, 6 * np.pi, num_samples)
@@ -67,15 +68,28 @@ def compute_metrics(y_true, y_pred):
     return metrics
 
 # Save data and model
-def save_data_and_model(x, y, model, data_file='data/sinusoid_test_data.h5', model_file='model/sinusoid_model.h5'):
-    # Save the test data
-    with h5py.File(data_file, 'w') as f:
-        f.create_dataset('input1', data=x[:,0])
-        f.create_dataset('input2', data=x[:,1])
-        f.create_dataset('output_true', data=y[:,0])
-    
-    # Save the model
+def save_data_and_model(x_test_rescaled, y_test_rescaled, y_pred_rescaled, model,
+                        x_scaler, y_scaler,
+                        data_file='data/sinusoid_test_data.h5',
+                        model_file='models/sinusoid_model.h5'):
+    """Save the test data and model."""
     model.save(model_file)
+    print(f"Model has been saved to {model_file}")
+
+    test_data = np.hstack((x_test_rescaled, y_test_rescaled, y_pred_rescaled))
+    headers = ["input1", "input2", "output_true"]
+
+    with h5py.File(data_file, 'w') as f:
+        for i, header in enumerate(headers):
+            dset = f.create_dataset(header, data=test_data[:, i])
+            dset.attrs["num_entries"] = test_data.shape[0]
+
+        grp1 = f.create_group("scaler")
+        grp1.create_dataset("x_mean", data=x_scaler.mean_)
+        grp1.create_dataset("y_mean", data=y_scaler.mean_)
+        grp1.create_dataset("x_std", data=x_scaler.scale_)
+        grp1.create_dataset("y_std", data=y_scaler.scale_)
+    print(f"Data has been saved to {data_file}")
 
 def main():
     # Generate data
@@ -125,7 +139,8 @@ def main():
     print("Output standard deviation:", y_scaler.scale_)
     
     # Save the test data and model
-    save_data_and_model(x_test_rescaled, y_test_rescaled, model)
+    save_data_and_model(x_test_rescaled, y_test_rescaled, y_pred_rescaled,
+                        model, x_scaler, y_scaler)
 
 if __name__ == "__main__":
     main()

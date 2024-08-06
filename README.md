@@ -89,7 +89,7 @@ This will produce an executable in the bin/ directory.
 ### Step 6: Run the Fortran Program
 
     ```bash
-    ./bin/main path/to/datafile num_data_points path/to/model/parentdir/ [options]
+    ./bin/main path/to/datafile path/to/model/parentdir [options]
     ```
 
 Options:
@@ -100,7 +100,7 @@ debug - detailed information to determine where the issue lies
 In the case of the example, the number of entries in the testing set is 1000, and the data file that was exported contained physical values, which will need to be standardized.
 
     ```bash
-    ./bin/main example/data/sinusoid_test_data.h5 1000 example/model/sinusoid_model_decomposed standardize
+    ./bin/main example/data/sinusoid_test_data.h5 example/model/sinusoid_model_decomposed standardize
     ```
 
 The example is configured to be a "benchmark" example, which assumes that the outputs are known to compute error metrics for comparison to those generated in the TensorFlow implementation. All of the script components above can be easily altered in the case that you are trying to deploy the model in Fortran to predict novel points without known values. Obviously error metrics would not be available in that case.
@@ -109,7 +109,6 @@ The example is configured to be a "benchmark" example, which assumes that the ou
 ## Future Enhancements
 
 	•	Support for Current TensorFlow Model Format: Implement compatibility with the current TensorFlow model save format for broader usability.
-	•	Automatic Data Length Detection: Enhance the HDF5 reader to automatically determine the data length, simplifying data preparation.
 	•	Fortran Model Conversion: Develop a Fortran subroutine to replace the Python conversion script, making the workflow more integrated.
 	•	Additional Activation Functions: Expand the set of supported activation functions to accommodate more complex models.
 	•	User-Specified Network Configuration: Allow users to define network architecture and parameters via an input file, improving flexibility.

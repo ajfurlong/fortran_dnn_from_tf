@@ -42,13 +42,13 @@ contains
         ! Automatically load weights and biases for each layer
         do i = 1, network_depth
             if (i == 1) then
-                weight_filename = trim(model_path) // 'dense/dense/kernel:0.txt'
-                bias_filename = trim(model_path) // 'dense/dense/bias:0.txt'
+                weight_filename = trim(model_path) // '/dense/dense/kernel:0.txt'
+                bias_filename = trim(model_path) // '/dense/dense/bias:0.txt'
                 print *, model_path
             else
-                write(weight_filename, '(A, "dense_", I0, "/", "dense_", I0, "/kernel:0.txt")') &
+                write(weight_filename, '(A, "/dense_", I0, "/", "dense_", I0, "/kernel:0.txt")') &
                                                                     trim(model_path), i-1, i-1
-                write(bias_filename, '(A, "dense_", I0, "/", "dense_", I0, "/bias:0.txt")') &
+                write(bias_filename, '(A, "/dense_", I0, "/", "dense_", I0, "/bias:0.txt")') &
                                                                     trim(model_path), i-1, i-1
 
             end if

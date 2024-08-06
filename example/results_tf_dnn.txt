@@ -1,8 +1,8 @@
                  Values
-MAPE           0.636896
-Max APE        3.933511
-Min APE        0.000136
-STD APE        0.739952
-rRMSE (%)      0.976302
+MAPE           0.670924
+Max APE        3.950181
+Min APE        0.000694
+STD APE        0.613887
+rRMSE (%)      0.909394
 Ferr > 10% (%) 0.000000
-R^2            0.998234
+R^2            0.998099
