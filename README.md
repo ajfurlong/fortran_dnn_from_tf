@@ -110,9 +110,7 @@ This will produce an executable in the bin/ directory.
 
 ### Step 6: Run the Fortran Program
 
-    ```bash
     ./bin/main path/to/datafile path/to/modelfile path/to/metadatafile [options]
-    ```
 
 Options:
 standardize - applicable in most cases, standardizes your incoming data with the specified means/stds
@@ -120,9 +118,7 @@ debug - detailed information to determine where the issue lies
 
 In the case of the example, the number of entries in the testing set is 1000, and the data file that was exported contained physical values, which will need to be standardized.
 
-    ```bash
     ./bin/main data/sinusoid_test_data.h5 models/sinusoid_model_tf.h5 models/sinusoid_metadata_tf.h5 standardize
-    ```
 
 The example is configured in "verification mode", so it will print a table of performance values and save this table to a .txt file under output/.
 
