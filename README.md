@@ -2,6 +2,8 @@
 
 The purpose of this project is to provide a simple yet very accurate framework for using deep neural networks (DNNs) previously trained with TensorFlow to make predictions in a Fortran project. This approach allows Fortran programs to leverage the predictive power of TensorFlow-trained models without requiring complex integration or dependencies beyond HDF5 for data handling. There are a few other projects out there that focus on training and creating DNNs within Fortran, but this project simply does one thing (pretty well) that is easy to understand and implement. The basic idea behind this workflow is to leverage the ease of model training in Python with TensorFlow, with a seamless integration of the trained model into Fortran.
 
+No conversion of any information is required for this script, and it will take model.h5 files directly from the TensorFlow script without outside manipulation.
+
 ## Project Overview
 
 This project offers a minimalistic solution for incorporating TensorFlow-trained DNNs into Fortran applications. The project also includes data processing routines that facilitate benchmarking against original TensorFlow predictions to verify accuracy and consistency. Users are responsible for defining the network architecture manually, but the instructions provided make this process manageable and hopefully intuitive. The system is designed to process large HDF5 files for input and output data.
@@ -91,9 +93,7 @@ This will produce an executable in the bin/ directory.
 
 ### Step 6: Run the Fortran Program
 
-    ```bash
     ./bin/main path/to/datafile path/to/modelfile path/to/metadatafile [options]
-    ```
 
 Options:
 standardize - applicable in most cases, standardizes your incoming data with the specified means/stds from the metadata file
@@ -101,9 +101,7 @@ debug - detailed information to determine where the issue lies
 
 In the case of the example, the number of entries in the testing set is 1000, and the data file that was exported contained physical values, which will need to be standardized.
 
-    ```bash
     ./bin/main data/sinusoid_test_data.h5 models/sinusoid_model_tf.h5 models/sinusoid_metadata_tf.h5 standardize
-    ```
 
 The example is configured in "verification mode", so it will print a table of performance values and save this table to a .txt file under output/.
 
