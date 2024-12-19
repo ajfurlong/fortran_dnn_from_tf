@@ -9,7 +9,7 @@ program main
     real, allocatable :: x_data(:,:), y_pred(:), y_data(:), y_pred_tf(:)
     real :: y_temp(1)
     integer :: i, num_entries
-    integer :: num_inputs = 2
+    integer :: num_inputs
 
     ! Means and standard deviations for standardization
     real, allocatable :: x_mean(:), y_mean(:), x_std(:), y_std(:)
@@ -56,8 +56,17 @@ program main
 
     ! Load model weights, biases and scaling parameters from model.h5 and metadata.h5
     print *, 'Loading model...'
+    
+    num_inputs = 2
+    call initialize_network([2,16,16,1])
+
     call load_weights(model_path)
     call load_metadata(metadata_path, x_mean, y_mean, x_std, y_std)
+
+    ! If not specified, defaults to relu
+    layer_activations(1)%func => relu
+    layer_activations(2)%func => relu
+    layer_activations(3)%func => no_activation
     print *, 'Model load successful.'
 
     ! Read datasets from data.h5 file

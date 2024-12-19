@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.4.0] - 20224-12-19
+### Added
+- Ability to structure the network architecture entirely from inside main.f90
+- All layer and activation-related components now automatically build and allocate in dnn_module
+- Activation functions now set with pointers for each layer in main.f90
+
+### Changed
+- Major refactor of the dnn_module for efficiency and readability
+- Removed any hard-coding within dnn_module for layer and activation structuring
+- General loading and naming routines updated, such as get_dataset_name
+
+### Fixed
+- N/A
+
 ## [1.3.0] - 20224-08-08
 ### Added
 - Support for directly using the model.h5 file in load_weights() instead of having to convert to text file beforehand.
