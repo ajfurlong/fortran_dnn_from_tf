@@ -35,37 +35,20 @@ The 1,000 test points (inputs, true outputs, and the TensorFlow model's predicti
 
 In the output of this script, there will be some performance statistics. Directly under these, are the input/output means and standard deviations used during the standardization process. These standardization parameters are automatically stored in the metadata.h5 file saved under models/.
 
-### Step 2: Modify dnn_module.f90
+### Step 2: Modify main.f90 network architecture (or whatever module you'd like the predictions to go to)
 
-This is where you will specify the network structure and configuration. The first thing you will need to do is verify the network_depth parameter, which is equal to the number of hidden layers plus the output layer. The input_size parameter will then need to be verified, which is the number of input parameters you will provide the network per prediction. Then, the user must define each layer's number of neurons (units) by adding or subtracting inputX_size definitions and modifying their values.
+This is where you will specify the network structure and configuration. This has gotten a lot easier than the first version of the DNN framework, which needed the user to dig through the source network module. Now, a network architecture can be simply defined with two sections of information within whatever main program you are using. First, you will need to specify the number of inputs for the network with num_inputs. You will also need to add more variables at the top of main.f90 to reflect the number of inputs you have. Then, initialize the network with the number of layers and the number of "neurons" per layer, which is done with initialize_network([network structure]). The network structure is defined by [input_neurons, layer1_neurons, ..., output_neurons]. The output neurons, if you are trying to predict a single parameter, will be one.
 
-In load_weights(), the only thing that needs to be changed is each layer's array allocations, where X is the unique layer number:
+    num_inputs = 2
+    call initialize_network([2,16,16,2])
+    
+    call load_weights(model_path)
+    call load_metadata(metadata_path, x_mean, y_mean, x_std, y_std)
 
-    ! Allocate memory for weights and biases for each layer
-    allocate(network(X)%weights(layerX_size, layerX-1_size))
-    allocate(network(X)%biases(layerX_size))
-
-If this is the first layer in the network, where X=1, then the layerX-1_size will be called the input_size.
-
-Now moving along to predict(), you will need to modify the daisy-chain of layers and how the information passes through them. The basic block is located below, which performs the matrix multiplication using the extracted weights and biases, and then applies the specified activation function. There are several to choose from like elu, relu, and tanh. These must match those that are present in the TensorFlow architecture, of course. Feel free to define your own above as well if they are not already included.
-
-    ! Layer X
-    layer_output(1:layerX_size) = matmul(network(X)%weights, layerX-1_size) + network(X)%biases
-    layer_output(1:layerX_size) = relu(layer_output(1:layerX_size))
-
-Once again, if this is layer X=1, then the layerX-1_size will be the input_size. If it is the output layer, then layerX_size becomes output_size. For our two hidden layer, single output layer example, this becomes:
-
-    ! Layer 1
-    layer_output(1:layer1_size) = matmul(network(1)%weights, input) + network(1)%biases
-    layer_output(1:layer1_size) = relu(layer_output(1:layer1_size))
-
-    ! Layer 2
-    temp_output(1:layer2_size) = matmul(network(2)%weights, layer_output(1:layer1_size)) + network(2)%biases
-    layer_output(1:layer2_size) = relu(temp_output(1:layer2_size))
-
-    ! Output Layer
-    temp_output(1:output_size) = matmul(network(3)%weights, layer_output(1:layer2_size)) + network(3)%biases
-    output = temp_output(1:output_size)
+    ! Assign activation functions for each layer
+    layer_activations(1)%func => relu
+    layer_activations(2)%func => relu
+    layer_activations(3)%func => no_activation
 
 ### Step 3: Modify main.f90
 
@@ -113,7 +96,7 @@ This will produce an executable in the bin/ directory.
     ```
 
 Options:
-standardize - applicable in most cases, standardizes your incoming data with the specified means/stds
+standardize - applicable in most cases, standardizes your incoming data with the specified means/stds from the metadata file
 debug - detailed information to determine where the issue lies
 
 In the case of the example, the number of entries in the testing set is 1000, and the data file that was exported contained physical values, which will need to be standardized.
