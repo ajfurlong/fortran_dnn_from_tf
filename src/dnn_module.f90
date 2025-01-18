@@ -1,9 +1,10 @@
 module dnn_module
     use hdf5
+    use iso_fortran_env, only: r4 => real32, r8 => real64
     implicit none
     private
     public :: initialize_network, load_weights, load_metadata, predict, standardize, unstandardize
-    public :: relu, tanh_fn, elu, no_activation, layer_activations
+    public :: relu_fn, tanh_fn, elu_fn, no_activation, layer_activations
 
     !============================
     ! Abstract interface for activation functions
@@ -60,7 +61,7 @@ contains
         allocate(layer_activations(network_depth))
 
         do i = 1, network_depth-1
-            layer_activations(i)%func => relu
+            layer_activations(i)%func => relu_fn
         end do
         layer_activations(network_depth)%func => no_activation
     end subroutine initialize_network
@@ -176,41 +177,69 @@ contains
     ! Load a 2D dataset from the HDF5 file
     !------------------------------------------------------------
     subroutine load_dataset(file_id, dataset_name, data)
+    
         integer(hid_t), intent(in) :: file_id
         character(len=*), intent(in) :: dataset_name
         real, allocatable, intent(out) :: data(:,:)
-
-        integer(hid_t) :: dataset_id, dataspace_id
+    
+        integer(hid_t) :: dataset_id, dataspace_id, type_id
         integer :: hdferr
         integer(HSIZE_T) :: dims(2), maxdims(2)
-
+        integer(HSIZE_T) :: type_size
+        integer, parameter :: default_precision = kind(1.0)
+    
+        real(r4), allocatable :: data_single(:,:)  ! Buffer for single precision
+        real(r8), allocatable :: data_double(:,:)  ! Buffer for double precision
+    
+        ! Open dataset
         call h5dopen_f(file_id, dataset_name, dataset_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error opening dataset:', dataset_name, 'Code:', hdferr
-            stop 'Error opening dataset.'
-        end if
-
         call h5dget_space_f(dataset_id, dataspace_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error getting dataspace for:', dataset_name, 'Code:', hdferr
-            stop 'Error getting dataspace.'
-        end if
-
         call h5sget_simple_extent_dims_f(dataspace_id, dims, maxdims, hdferr)
-        if (hdferr == -1) then
-            print *, 'Error getting dimensions for:', dataset_name
-            stop 'Error getting dimensions.'
-        end if
-
+    
+        ! Allocate output array
         allocate(data(dims(1), dims(2)))
-        call h5dread_f(dataset_id, H5T_NATIVE_REAL, data, dims, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error reading dataset:', dataset_name, 'Code:', hdferr
-            stop 'Error reading dataset.'
+    
+        ! Get dataset type
+        call h5dget_type_f(dataset_id, type_id, hdferr)
+        call h5tget_size_f(type_id, type_size, hdferr)
+    
+        ! Read dataset
+        ! TensorFlow HDF5 model files are in single precision
+        if (type_size == 4) then
+            if (default_precision == 4) then
+                ! If the program is compiled in REAL(4), read directly into data
+                call h5dread_f(dataset_id, H5T_NATIVE_REAL, data, dims, hdferr)
+            else
+                ! If the program is compiled in REAL(8), downcast from double to single precision
+                allocate(data_single(dims(1), dims(2)))
+                call h5dread_f(dataset_id, H5T_NATIVE_REAL, data_single, dims, hdferr)
+                data = real(data_single, kind=kind(data(1,1)))
+                deallocate(data_single)
+            end if
+        
+        else if (type_size == 8) then
+            if (default_precision == 8) then
+                ! If the program is compiled in REAL(8), read directly into data
+                call h5dread_f(dataset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+            else
+                ! If the program is compiled in REAL(4), downcast from double to single precision
+                allocate(data_double(dims(1), dims(2)))
+                call h5dread_f(dataset_id, H5T_NATIVE_DOUBLE, data_double, dims, hdferr)
+                data = real(data_double, kind=kind(data(1,1)))
+                deallocate(data_double)
+            end if
+        
+        else
+            print *, "Error: Unsupported dataset type size:", type_size
+            stop
         end if
-
+    
+        ! Cleanup
+        if (allocated(data_single)) deallocate(data_single)
+        call h5tclose_f(type_id, hdferr)
         call h5sclose_f(dataspace_id, hdferr)
         call h5dclose_f(dataset_id, hdferr)
+    
     end subroutine load_dataset
 
     !------------------------------------------------------------
@@ -221,9 +250,13 @@ contains
         character(len=*), intent(in) :: dataset_name
         real, allocatable, intent(out) :: data(:)
 
-        integer(hid_t) :: dataset_id, dataspace_id
+        integer(hid_t) :: dataset_id, dataspace_id, type_id
         integer :: hdferr
-        integer(HSIZE_T) :: dims(1), maxdims(1)
+        integer(HSIZE_T) :: dims(1), maxdims(1), type_size
+        integer, parameter :: default_precision = kind(1.0)
+
+        real(r4), allocatable :: data_single(:)  ! Buffer for single precision
+        real(r8), allocatable :: data_double(:)  ! Buffer for double precision
 
         call h5dopen_f(file_id, dataset_name, dataset_id, hdferr)
         if (hdferr /= 0) then
@@ -244,12 +277,51 @@ contains
         end if
 
         allocate(data(dims(1)))
-        call h5dread_f(dataset_id, H5T_NATIVE_REAL, data, dims, hdferr)
+
+        ! Get dataset type
+        call h5dget_type_f(dataset_id, type_id, hdferr)
         if (hdferr /= 0) then
-            print *, 'Error reading dataset:', dataset_name
-            stop 'Error reading dataset.'
+            print *, 'Error getting dataset type for:', dataset_name
+            stop 'Error getting dataset type.'
+        end if
+    
+        ! Get dataset type size
+        call h5tget_size_f(type_id, type_size, hdferr)
+        if (hdferr /= 0) then
+            print *, 'Error getting type size for:', dataset_name
+            stop 'Error getting type size.'
         end if
 
+        if (type_size == 4) then
+            if (default_precision == 4) then
+                ! If the program is compiled in REAL(4), read directly into data
+                call h5dread_f(dataset_id, H5T_NATIVE_REAL, data, dims, hdferr)
+            else
+                ! If the program is compiled in REAL(8), downcast from double to single precision
+                allocate(data_single(dims(1)))
+                call h5dread_f(dataset_id, H5T_NATIVE_REAL, data_single, dims, hdferr)
+                data = real(data_single, kind=kind(data))
+                deallocate(data_single)
+            end if
+        
+        else if (type_size == 8) then
+            if (default_precision == 8) then
+                ! If the program is compiled in REAL(8), read directly into data
+                call h5dread_f(dataset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+            else
+                ! If the program is compiled in REAL(4), downcast from double to single precision
+                allocate(data_double(dims(1)))
+                call h5dread_f(dataset_id, H5T_NATIVE_DOUBLE, data_double, dims, hdferr)
+                data = real(data_double, kind=kind(data))
+                deallocate(data_double)
+            end if
+        
+        else
+            print *, "Error: Unsupported dataset type size:", type_size
+            stop
+        end if
+
+        call h5tclose_f(type_id, hdferr)
         call h5sclose_f(dataspace_id, hdferr)
         call h5dclose_f(dataset_id, hdferr)
     end subroutine load_dataset_1d
@@ -278,11 +350,11 @@ contains
     !------------------------------------------------------------
     ! Activation functions
     !------------------------------------------------------------
-    function relu(x) result(y)
+    function relu_fn(x) result(y)
         real, dimension(:), intent(in) :: x
         real, dimension(size(x)) :: y
         y = max(0.0, x)
-    end function relu
+    end function relu_fn
 
     function tanh_fn(x) result(y)
         real, dimension(:), intent(in) :: x
@@ -290,12 +362,12 @@ contains
         y = tanh(x)
     end function tanh_fn
 
-    function elu(x) result(y)
+    function elu_fn(x) result(y)
         real, dimension(:), intent(in) :: x
         real, dimension(size(x)) :: y
         y = x
         where (x < 0.0) y = exp(x) - 1.0
-    end function elu
+    end function elu_fn
 
     function no_activation(x) result(y)
         real, dimension(:), intent(in) :: x

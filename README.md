@@ -48,8 +48,8 @@ This is where you will specify the network structure and configuration. This has
     call load_metadata(metadata_path, x_mean, y_mean, x_std, y_std)
 
     ! Assign activation functions for each layer
-    layer_activations(1)%func => relu
-    layer_activations(2)%func => relu
+    layer_activations(1)%func => relu_fn
+    layer_activations(2)%func => relu_fn
     layer_activations(3)%func => no_activation
 
 ### Step 3: Modify main.f90

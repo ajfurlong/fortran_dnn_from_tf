@@ -1,7 +1,7 @@
 module metrics_module
     implicit none
     private
-    public :: compute_metrics
+    public :: compute_metrics, save_verification_data
 
 contains
 
@@ -109,4 +109,36 @@ contains
         close(unit)
     end subroutine compute_metrics
     
+    subroutine save_verification_data(filename, x_data, y_data, y_pred, y_pred_tf, num_entries, num_inputs)
+        implicit none
+        character(len=*), intent(in) :: filename
+        integer, intent(in) :: num_entries, num_inputs
+        real, intent(in) :: x_data(num_entries, num_inputs)
+        real, intent(in) :: y_data(num_entries)
+        real, intent(in) :: y_pred(num_entries)
+        real, intent(in) :: y_pred_tf(num_entries)
+        
+        integer :: i, unit
+        character(len=256) :: output_filename
+    
+        ! Set output file name
+        output_filename = trim(filename)
+    
+        ! Open file for writing
+        open(newunit=unit, file=output_filename, status="replace", action="write")
+    
+        ! Write header
+        write(unit, '(A)') "input1,input2,true_output,fortran_pred,tensorflow_pred"
+    
+        ! Write data entries
+        do i = 1, num_entries
+            write(unit, '(F10.6, ",", F10.6, ",", F10.6, ",", F10.6, ",", F10.6)') &
+                x_data(i, 1), x_data(i, 2), y_data(i), y_pred(i), y_pred_tf(i)
+        end do
+    
+        ! Close file
+        close(unit)
+        print *, "Verification data saved to ", trim(output_filename)
+    end subroutine save_verification_data
+
 end module metrics_module

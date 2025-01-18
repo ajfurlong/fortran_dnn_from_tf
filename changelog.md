@@ -1,6 +1,19 @@
 # Changelog
 
-## [1.4.0] - 20224-12-19
+## [1.4.0] - 2025-01-18
+### Added
+- Verification toy problem "nonlinear regression" and results
+- New subroutine save_verification_data() added to metrics_module.f90 to allow for data analysis outside of Fortran
+
+### Changed
+- HDF5 processing updated to detect if file dataset is F32 or F64 (TensorFlow model.save() defaults to F32)
+- Casts HDF5 read-in datasets to correct precision if different than the compiled
+- Activation function names updated "relu", "elu" -> "relu_fn", "elu_fn"
+
+### Fixed
+- Corrected support for double precision
+
+## [1.3.0] - 2024-12-19
 ### Added
 - Ability to structure the network architecture entirely from inside main.f90
 - All layer and activation-related components now automatically build and allocate in dnn_module
@@ -14,7 +27,7 @@
 ### Fixed
 - N/A
 
-## [1.3.0] - 20224-08-08
+## [1.2.0] - 2024-08-08
 ### Added
 - Support for directly using the model.h5 file in load_weights() instead of having to convert to text file beforehand.
 - Standardization parameters now load directly in from a metadata.h5 file instead of manual specification in source.
@@ -31,7 +44,7 @@
 ### Fixed
 - Removed all real(4) single-type specification to allow for compiler-specified precision.
 
-## [1.2.0] - 2024-08-06
+## [1.1.0] - 2024-08-06
 ### Added
 - Automatic dataset length detection in `read_hdf5_module`, requiring a "num_entries" attribute on each dataset in the HDF5 data file.
 - Print total number of predictions made in `metrics_module`.
@@ -43,6 +56,6 @@
 ### Fixed
 - Corrected how the model file input argument is processed in `dnn_module`, which required a trailing "/".
 
-## [1.1.0] - 2024-08-05
+## [1.0.0] - 2024-08-05
 ### Added
 - Initial release.

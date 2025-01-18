@@ -1,5 +1,6 @@
 module read_hdf5_module
     use hdf5
+    use iso_fortran_env, only: r4 => real32, r8 => real64
     implicit none
     private
     public :: read_dataset
@@ -7,112 +8,78 @@ module read_hdf5_module
 contains
 
     subroutine read_dataset(filename, dataset_name, data, num_entries, debug)
-        use hdf5
-        implicit none
+
         character(len=*), intent(in) :: filename, dataset_name
-        real, allocatable, intent(out) :: data(:)
+        real, allocatable, intent(out) :: data(:)  
         integer, intent(out) :: num_entries
-        integer(hid_t) :: file_id, dataset_id, dataspace_id
-        integer :: rank, hdferr
         logical, intent(in) :: debug
-        logical :: space_type
 
-        ! Declare dimensions array
+        integer(hid_t) :: file_id, dataset_id, dataspace_id, type_id
+        integer :: hdferr
         integer(HSIZE_T), dimension(1) :: ddims, maxdims
+        integer(HSIZE_T) :: type_size
+        integer :: class_id
+        integer, parameter :: default_precision = kind(1.0)
 
-        ! Open the HDF5 file and read the datasets
+        real(r4), allocatable :: data_single(:)  
+        real(r8), allocatable :: data_double(:)  
+
+        ! Open HDF5 file and dataset
         call h5open_f(hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error opening HDF5 library: ', hdferr
-            stop 'Error opening HDF5 library.'
-        end if
-
-        ! Open the HDF5 file
         call h5fopen_f(filename, H5F_ACC_RDONLY_F, file_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error opening HDF5 file:', filename, 'Error code:', hdferr
-            stop 'Error opening HDF5 file.'
-        end if
-        if (debug) print *, 'Successfully opened HDF5 file: ', filename
-
-        ! Open the dataset
         call h5dopen_f(file_id, dataset_name, dataset_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error opening dataset:', dataset_name, 'Error code:', hdferr
-            stop 'Error opening dataset.'
-        end if
-        if (debug) print *, 'Successfully opened dataset: ', dataset_name
-
-        ! Get the dataspace
         call h5dget_space_f(dataset_id, dataspace_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error getting dataspace for dataset: ', dataset_name, 'Error code: ', hdferr
-            stop 'Error getting dataspace.'
-        end if
-        if (debug) print *, 'Successfully got dataspace for dataset: ', dataset_name
 
-        ! Check the dataspace type
-        call h5sis_simple_f(dataspace_id, space_type, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error determining if dataspace is simple: ', 'Error code: ', hdferr
-            stop 'Error determining if dataspace is simple.'
-        else if (.not. space_type) then
-            print *, 'Dataspace is not simple for dataset: ', dataset_name
-            stop 'Dataspace is not simple.'
-        end if
-        if (debug) print *, 'Dataspace is simple for dataset: ', dataset_name
-
-        ! Get the dimensions of the dataset
+        ! Get dataset dimensions
         call h5sget_simple_extent_dims_f(dataspace_id, ddims, maxdims, hdferr)
-        if (hdferr == -1) then
-            print *, 'Error getting dimensions for dataset:', dataset_name, 'Error code:', hdferr
-            stop 'Error getting dimensions.'
-        end if
-        if (debug) print *, 'Dataset dimensions: ', ddims(1)
-
-        ! Set num_entries to the dimension size
         num_entries = ddims(1)
 
-        ! Allocate the array to read the data
+        ! Get dataset type
+        call h5dget_type_f(dataset_id, type_id, hdferr)
+        call h5tget_size_f(type_id, type_size, hdferr)
+        call h5tget_class_f(type_id, class_id, hdferr)
+
+        if (class_id /= H5T_FLOAT_F) then
+            print *, "Error: Dataset is NOT floating-point!"
+            stop
+        end if
+
+        ! Allocate output array
         allocate(data(num_entries))
 
-        ! Read the data from the dataset
-        call h5dread_f(dataset_id, H5T_NATIVE_REAL, data, ddims, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error reading dataset: ', dataset_name, 'Error code: ', hdferr
-            call h5sclose_f(dataspace_id, hdferr)
-            call h5dclose_f(dataset_id, hdferr)
-            call h5fclose_f(file_id, hdferr)
-            stop 'Error reading dataset.'
-        end if
-        print *, 'Successfully read dataset: ', dataset_name
+        ! Automatically detect precision & read accordingly
+        select case (type_size)
+            case (4)  ! Dataset stored in REAL(4)
+                if (default_precision == 4) then
+                    call h5dread_f(dataset_id, H5T_NATIVE_REAL, data, ddims, hdferr)
+                else
+                    allocate(data_single(num_entries))
+                    call h5dread_f(dataset_id, H5T_NATIVE_REAL, data_single, ddims, hdferr)
+                    data = real(data_single, kind=kind(data(1)))
+                    deallocate(data_single)
+                end if
 
-        ! Close the dataspace
+            case (8)  ! Dataset stored in REAL(8)
+                if (default_precision == 8) then
+                    call h5dread_f(dataset_id, H5T_NATIVE_DOUBLE, data, ddims, hdferr)
+                else
+                    allocate(data_double(num_entries))
+                    call h5dread_f(dataset_id, H5T_NATIVE_DOUBLE, data_double, ddims, hdferr)
+                    data = real(data_double, kind=kind(data(1)))
+                    deallocate(data_double)
+                end if
+
+            case default
+                print *, "Error: Unsupported dataset type size:", type_size
+                stop
+        end select
+
+        ! Cleanup
+        call h5tclose_f(type_id, hdferr)
         call h5sclose_f(dataspace_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error closing dataspace for dataset: ', dataset_name, 'Error code: ', hdferr
-            call h5dclose_f(dataset_id, hdferr)
-            call h5fclose_f(file_id, hdferr)
-            stop 'Error closing dataspace.'
-        end if
-        if (debug) print *, 'Successfully closed dataspace for dataset: ', dataset_name
-
-        ! Close the dataset
         call h5dclose_f(dataset_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error closing dataset: ', dataset_name, 'Error code: ', hdferr
-            call h5fclose_f(file_id, hdferr)
-            stop 'Error closing dataset.'
-        end if
-        if (debug) print *, 'Successfully closed dataset: ', dataset_name
-
-        ! Close the file
         call h5fclose_f(file_id, hdferr)
-        if (hdferr /= 0) then
-            print *, 'Error closing HDF5 file: ', filename, 'Error code: ', hdferr
-            stop 'Error closing HDF5 file.'
-        end if
-        if (debug) print *, 'Successfully closed HDF5 file: ', filename
+
     end subroutine read_dataset
 
 end module read_hdf5_module
