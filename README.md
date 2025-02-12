@@ -4,6 +4,8 @@ The purpose of this project is to provide a simple yet very accurate framework f
 
 No conversion of any information is required for this script, and it will take model.h5 files directly from the TensorFlow script without outside manipulation.
 
+Relevant verification cases and narrative can be found [here](https://arxiv.org/abs/2502.06853).
+
 ## Project Overview
 
 This project offers a minimalistic solution for incorporating TensorFlow-trained DNNs into Fortran applications. The project also includes data processing routines that facilitate benchmarking against original TensorFlow predictions to verify accuracy and consistency. Users are responsible for defining the network architecture manually, but the instructions provided make this process manageable and hopefully intuitive. The system is designed to process large HDF5 files for input and output data.
