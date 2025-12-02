@@ -125,7 +125,7 @@ def main():
     # For timing statistics
     start_time = time.time()
 
-    # Make predictions and inverse transform
+    # Make predictions
     y_pred = model.predict(x_test)
 
     end_time = time.time()

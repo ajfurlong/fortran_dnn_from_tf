@@ -1,0 +1,61 @@
+########################################
+# Fortran build artifacts
+########################################
+*.o
+*.obj
+*.mod
+*.smod
+*.a
+*.so
+*.dll
+*.exe
+*.out
+*.lst
+
+# Build directories
+obj/
+build/
+bin/
+output/
+
+# Fortran module folders some compilers create
+*.dSYM/
+*.DSYM/
+
+########################################
+# Python cache and environments
+########################################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.env/
+.venv/
+env/
+
+########################################
+# VSCode
+########################################
+.vscode/
+*.code-workspace
+
+########################################
+# MacOS junk files
+########################################
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+########################################
+# Logs and temporary files
+########################################
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo

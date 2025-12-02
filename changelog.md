@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.1] - 2025-01-18
+### Added
+- N/A
+
+### Changed
+- Simplified real precision handling throughout dnn_module.f90 and read_hdf5_module.f90
+- main.f90 and metrics_module.f90 remain unchanged
+
+### Fixed
+- Strengthened the brittle precision logic
+
 ## [1.4.0] - 2025-01-18
 ### Added
 - Verification toy problem "nonlinear regression" and results

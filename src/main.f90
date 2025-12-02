@@ -9,7 +9,7 @@ program main
     !!!!!!!!!!!!!!!!!!!
 
     ! Data arrays
-    real, allocatable :: input1(:), input2(:), input3(:)
+    real, allocatable :: input1(:), input2(:)
     real, allocatable :: x_data(:,:), y_pred(:), y_data(:), y_pred_tf(:)
     real :: y_temp(1)
     integer :: i, num_entries
@@ -63,27 +63,24 @@ program main
 
     ! Define model architecture
     ! Input features
-    num_inputs = 3
+    num_inputs = 2
 
     ! Neurons in each layer [Input, Hidden1, ..., Output]
-    call initialize_network([3,17,16,15,14,1])
+    call initialize_network([2,16,16,1])
 
     call load_weights(model_path)
     call load_metadata(metadata_path, x_mean, y_mean, x_std, y_std)
 
     ! If not specified, defaults to relu
     layer_activations(1)%func => relu_fn
-    layer_activations(2)%func => elu_fn
-    layer_activations(3)%func => tanh_fn
-    layer_activations(4)%func => relu_fn
-    layer_activations(5)%func => no_activation
+    layer_activations(2)%func => relu_fn
+    layer_activations(3)%func => no_activation
     print *, 'Model load successful.'
 
     ! Read datasets from data.h5 file
     print *, 'Reading datasets...'
     call read_dataset(filename, 'input1', input1, num_entries, debug)
     call read_dataset(filename, 'input2', input2, num_entries, debug)
-    call read_dataset(filename, 'input3', input3, num_entries, debug)
     call read_dataset(filename, 'output_true', y_data, num_entries, debug)
     call read_dataset(filename, 'output_pred', y_pred_tf, num_entries, debug)
 
@@ -91,14 +88,12 @@ program main
     allocate(x_data(num_entries, num_inputs))
     x_data(:, 1) = input1(:)
     x_data(:, 2) = input2(:)
-    x_data(:, 3) = input3(:)
 
     ! Standardize datasets if needed (if you are using physical data)
     if (standardize_data) then
         print *, 'Standardizing datasets...'
         call standardize(x_data(:, 1), x_mean(1), x_std(1))
         call standardize(x_data(:, 2), x_mean(2), x_std(2))
-        call standardize(x_data(:, 3), x_mean(3), x_std(3))
     end if
 
     print *, 'Dataset pre-processing successful.'
@@ -125,6 +120,6 @@ program main
     call compute_metrics(y_data, y_pred, y_pred_tf, elapsed_time)
 
     ! Save data to a .csv file for visualization
-    call save_verification_data("verification_output_nonlinear_regression.csv", x_data, y_data, y_pred, y_pred_tf, num_entries, num_inputs)
+    call save_verification_data("verification_output_sinusoid.csv", x_data, y_data, y_pred, y_pred_tf, num_entries, num_inputs)
 
 end program main

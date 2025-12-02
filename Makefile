@@ -2,7 +2,7 @@
 FC = gfortran
 
 # Define the directories
-# Change the HDF5_DIR to match your install
+# User! Change the HDF5_DIR to match your install
 HDF5_DIR = /opt/homebrew/Cellar/hdf5/1.14.3_1
 INCLUDE_DIR = $(HDF5_DIR)/include
 LIB_DIR = $(HDF5_DIR)/lib

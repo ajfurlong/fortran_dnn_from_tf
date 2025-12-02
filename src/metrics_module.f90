@@ -1,5 +1,6 @@
 module metrics_module
     implicit none
+    integer, parameter :: rk = kind(1.0)
     private
     public :: compute_metrics, save_verification_data
 
@@ -7,15 +8,15 @@ contains
 
     subroutine compute_metrics(y_data, y_pred, y_pred_tf, elapsed_time)
         implicit none
-        real, intent(in) :: y_data(:), y_pred(:), y_pred_tf(:), elapsed_time
-        real :: relative_error(size(y_data)), relative_error_tf(size(y_data))
-        real :: abs_err(size(y_data)), abs_err_tf(size(y_data))
+        real(rk), intent(in) :: y_data(:), y_pred(:), y_pred_tf(:), elapsed_time
+        real(rk) :: relative_error(size(y_data)), relative_error_tf(size(y_data))
+        real(rk) :: abs_err(size(y_data)), abs_err_tf(size(y_data))
         integer :: ferr_above_10, ferr_above_10_tf
-        real :: rrmse, rrmse_tf
-        real :: mae, mape, max_ae, max_ape, min_ae, min_ape
-        real :: mae_tf, mape_tf, max_ae_tf, max_ape_tf, min_ae_tf, min_ape_tf
-        real :: std_ape, ferr_percent, std_ape_tf, ferr_percent_tf
-        real :: ss_total, ss_res, r_squared, ss_res_tf, r_squared_tf
+        real(rk) :: rrmse, rrmse_tf
+        real(rk) :: mae, mape, max_ae, max_ape, min_ae, min_ape
+        real(rk) :: mae_tf, mape_tf, max_ae_tf, max_ape_tf, min_ae_tf, min_ape_tf
+        real(rk) :: std_ape, ferr_percent, std_ape_tf, ferr_percent_tf
+        real(rk) :: ss_total, ss_res, r_squared, ss_res_tf, r_squared_tf
         integer :: unit
 
         ! Calculate errors and metrics for y_pred
@@ -113,10 +114,10 @@ contains
         implicit none
         character(len=*), intent(in) :: filename
         integer, intent(in) :: num_entries, num_inputs
-        real, intent(in) :: x_data(num_entries, num_inputs)
-        real, intent(in) :: y_data(num_entries)
-        real, intent(in) :: y_pred(num_entries)
-        real, intent(in) :: y_pred_tf(num_entries)
+        real(rk), intent(in) :: x_data(num_entries, num_inputs)
+        real(rk), intent(in) :: y_data(num_entries)
+        real(rk), intent(in) :: y_pred(num_entries)
+        real(rk), intent(in) :: y_pred_tf(num_entries)
         
         integer :: i, unit
         character(len=256) :: output_filename
@@ -132,7 +133,7 @@ contains
     
         ! Write data entries
         do i = 1, num_entries
-            write(unit, '(F10.6, ",", F10.6, ",", F10.6, ",", F10.6, ",", F10.6)') &
+            write(unit, '(F10.6, ",", F10.6, ",", F14.10, ",", F14.10, ",", F14.10)') &
                 x_data(i, 1), x_data(i, 2), y_data(i), y_pred(i), y_pred_tf(i)
         end do
     
