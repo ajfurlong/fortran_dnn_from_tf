@@ -1,13 +1,13 @@
                        Values
-MAE                  0.270386
-Max AE               7.394126
-Min AE               0.001561
-STD AE               0.321907
-MAPE                 3.117687
-Max APE            492.344446
-Min APE              0.002478
-STD APE             17.244691
-rRMSE (%)           17.524250
+MAE                  0.296699
+Max AE               7.026099
+Min AE               0.000127
+STD AE               0.324872
+MAPE                 3.414533
+Max APE            656.565573
+Min APE              0.000302
+STD APE             21.849608
+rRMSE (%)           22.114800
 Ferr > 10% (%)       5.000000
-R^2                  0.999903
-Inference Time (s)   0.109201
+R^2                  0.999894
+Inference Time (s)   0.115224

@@ -84,12 +84,56 @@ def save_data_and_model(x_test_rescaled, y_test_rescaled, y_pred_rescaled, model
     print(f"Model has been saved to {model_file}")
 
     with h5py.File(metadata_file, 'w') as f:
-        grp1 = f.create_group("scaler")
-        grp1.create_dataset("x_mean", data=x_scaler.mean_)
-        grp1.create_dataset("y_mean", data=y_scaler.mean_)
-        grp1.create_dataset("x_std", data=x_scaler.scale_)
-        grp1.create_dataset("y_std", data=y_scaler.scale_)
-    print(f"Model metadata has been saved to {metadata_file}")
+        # Scaler information
+        grp_scaler = f.create_group("scaler")
+        grp_scaler.create_dataset("x_mean", data=x_scaler.mean_)
+        grp_scaler.create_dataset("y_mean", data=y_scaler.mean_)
+        grp_scaler.create_dataset("x_std", data=x_scaler.scale_)
+        grp_scaler.create_dataset("y_std", data=y_scaler.scale_)
+
+        # Architecture information
+        grp_arch = f.create_group("architecture")
+
+        # Collect Dense layers only (consistent with Fortran side)
+        dense_layers = [layer for layer in model.layers if isinstance(layer, layers.Dense)]
+
+        # Layer sizes: [input_dim, units_layer1, units_layer2, ..., units_last]
+        input_dim = model.input_shape[-1]
+        layer_sizes = [input_dim] + [layer.units for layer in dense_layers]
+
+        # Activation ID mapping:
+        # 0 -> linear (no activation)
+        # 1 -> relu
+        # 2 -> tanh
+        # 3 -> elu
+        # 4 -> sigmoid (reserved for future use)
+        def _activation_id(layer_obj):
+            act = layer_obj.activation
+            name = getattr(act, "__name__", str(act))
+            if name == "linear":
+                return 0
+            elif name == "relu":
+                return 1
+            elif name == "tanh":
+                return 2
+            elif name == "elu":
+                return 3
+            elif name == "sigmoid":
+                return 4
+            else:
+                raise ValueError(f"Unsupported activation {name} in layer {layer_obj.name}")
+
+        activation_ids = [_activation_id(layer) for layer in dense_layers]
+
+        grp_arch.create_dataset("layer_sizes", data=np.asarray(layer_sizes, dtype=np.int32))
+        grp_arch.create_dataset("activations", data=np.asarray(activation_ids, dtype=np.int32))
+
+        # Model type identifier
+        model_info = f.create_group("model_info")
+        model_info.create_dataset("model_type_id", data=np.asarray([100], dtype=np.int32))
+        model_info.create_dataset("model_type_name", data=np.string_("sinusoid_dnn_test"))
+
+    print(f"Model metadata (scalers + architecture) has been saved to {metadata_file}")
 
     test_data = np.hstack((x_test_rescaled, y_test_rescaled, y_pred_rescaled))
     headers = ["input1", "input2", "output_true", "output_pred"]

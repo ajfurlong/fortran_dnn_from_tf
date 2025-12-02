@@ -8,7 +8,7 @@ Relevant verification cases and narrative can be found [here](https://arxiv.org/
 
 ## Project Overview
 
-This project offers a minimalistic solution for incorporating TensorFlow-trained DNNs into Fortran applications. The project also includes data processing routines that facilitate benchmarking against original TensorFlow predictions to verify accuracy and consistency. Users are responsible for defining the network architecture manually, but the instructions provided make this process manageable and hopefully intuitive. The system is designed to process large HDF5 files for input and output data.
+This project offers a minimalistic solution for incorporating TensorFlow-trained DNNs into Fortran applications. The project also includes data processing routines that facilitate benchmarking against original TensorFlow predictions to verify accuracy and consistency. Users are responsible for defining the network architecture and standardization information in a metadata.h5 file on the Python environment-side of things. This is not difficult, but requires adherence to a set format, which is specified below. The system is designed to process large HDF5 files for input and output data.
 
 ## Prerequisites
 
@@ -39,24 +39,68 @@ The 1,000 test points (inputs, true outputs, and the TensorFlow model's predicti
 
 In the output of this script, there will be some performance statistics. Directly under these, are the input/output means and standard deviations used during the standardization process. These standardization parameters are automatically stored in the metadata.h5 file saved under models/.
 
+The structure of the metadata.h5 is extremely important but very simple to implement on the Python-side. It consists of three dataset groups: "scaler", "architecture", and "model_info". Each of these names should be pretty self-explanatory. The scaler group contains four datasets which hold information for data standardization: "x_mean", "x_std", "y_mean", and "y_std". The architecture is then specified with a dataset simply listing layer widths ("layer_sizes") and another dataset listing activation functions ("activations", encoded with integers, see below). Model information, such as an ID or string name, are stored in "model_info" under dataset names "model_type_id" and "model_type_name", respectively. Below is a Python snippet that makes this metadata.h5 writing process a whole lot easier:
+
+    with h5py.File(metadata_file, 'w') as f:
+        # Scaler information
+        grp_scaler = f.create_group("scaler")
+        grp_scaler.create_dataset("x_mean", data=x_scaler.mean_)
+        grp_scaler.create_dataset("y_mean", data=y_scaler.mean_)
+        grp_scaler.create_dataset("x_std", data=x_scaler.scale_)
+        grp_scaler.create_dataset("y_std", data=y_scaler.scale_)
+
+        # Architecture information
+        grp_arch = f.create_group("architecture")
+
+        # Collect Dense layers only (consistent with Fortran side)
+        dense_layers = [layer for layer in model.layers if isinstance(layer, layers.Dense)]
+
+        # Layer sizes: [input_dim, units_layer1, units_layer2, ..., units_last]
+        input_dim = model.input_shape[-1]
+        layer_sizes = [input_dim] + [layer.units for layer in dense_layers]
+
+        # Activation ID mapping:
+        # 0 -> linear (no activation)
+        # 1 -> relu
+        # 2 -> tanh
+        # 3 -> elu
+        # 4 -> sigmoid (reserved for future use)
+        def _activation_id(layer_obj):
+            act = layer_obj.activation
+            name = getattr(act, "__name__", str(act))
+            if name == "linear":
+                return 0
+            elif name == "relu":
+                return 1
+            elif name == "tanh":
+                return 2
+            elif name == "elu":
+                return 3
+            elif name == "sigmoid":
+                return 4
+            else:
+                raise ValueError(f"Unsupported activation {name} in layer {layer_obj.name}")
+
+        activation_ids = [_activation_id(layer) for layer in dense_layers]
+
+        grp_arch.create_dataset("layer_sizes", data=np.asarray(layer_sizes, dtype=np.int32))
+        grp_arch.create_dataset("activations", data=np.asarray(activation_ids, dtype=np.int32))
+
+        # Model type identifier
+        model_info = f.create_group("model_info")
+        model_info.create_dataset("model_type_id", data=np.asarray([100], dtype=np.int32))
+        model_info.create_dataset("model_type_name", data=np.string_("sinusoid_dnn_test"))
+
 ### Step 2: Modify main.f90 network architecture (or whatever module you'd like the predictions to go to)
 
-This is where you will specify the network structure and configuration. This has gotten a lot easier than the first version of the DNN framework, which needed the user to dig through the source network module. Now, a network architecture can be simply defined with two sections of information within whatever main program you are using. First, you will need to specify the number of inputs for the network with num_inputs. You will also need to add more variables at the top of main.f90 to reflect the number of inputs you have. Then, initialize the network with the number of layers and the number of "neurons" per layer, which is done with initialize_network([network structure]). The network structure is defined by [input_neurons, layer1_neurons, ..., output_neurons]. The output neurons, if you are trying to predict a single parameter, will be one.
+This is where you will specify the network structure and configuration. This has gotten a lot easier than the first version of the DNN framework, which needed the user to dig through the source network module. The second version was a little easier, but required manual definition of the architecture and activations in main.f90. This version replaces all of that with the built-in capability to read the architecture from the metadata.h5 file. The only thing now left to the user in main.f90 is simply calling load_metadata() and load_weights(). The order DOES matter, since the information contained in metadata.h5 informs load_weights() of the structure.
 
-    num_inputs = 2
-    call initialize_network([2,16,16,2])
-    
-    call load_weights(model_path)
     call load_metadata(metadata_path, x_mean, y_mean, x_std, y_std)
-
-    ! Assign activation functions for each layer
-    layer_activations(1)%func => relu_fn
-    layer_activations(2)%func => relu_fn
-    layer_activations(3)%func => no_activation
+    call load_weights(model_path)
 
 ### Step 3: Modify main.f90
 
-The first thing to change is the definition of the data arrays (e.g., input1(:), input2(:), y_data(:)). Add or remove these depending on how many input parameters you have. If you are not in "verification mode" comparing outputs of the Fortran implementation against those of the TensorFlow model, remove the y_data(:) and y_pred_tf(:) and other relevant mentions throughout main.f90.
+The first thing to change is the definition of the data arrays (i.e., input1(:), input2(:), y_data(:)). Add or remove these depending on how many input parameters you have. If you are not in "verification mode" comparing outputs of the Fortran implementation against those of the TensorFlow model, remove the y_data(:) and y_pred_tf(:) and other relevant mentions throughout main.f90.
 
 When it comes to the read_dataset calls, you will need to adjust the string to match the names of the datasets in the HDF5 file and the input array you would like to send that information to. The other arguments will be automatically adjusted. For our example, where there are two inputs, one true output, and the TensorFlow predicted output, this becomes:
 

@@ -144,6 +144,8 @@ contains
         real(rk), allocatable, intent(out) :: x_mean(:), y_mean(:), x_std(:), y_std(:)
         integer(hid_t) :: file_id
         integer :: hdferr
+        integer :: i, network_depth
+        integer, allocatable :: arch_layer_sizes(:), activation_ids(:)
 
         call h5open_f(hdferr)
         if (hdferr /= 0) then
@@ -162,6 +164,40 @@ contains
         call load_dataset_1d(file_id, 'scaler/y_mean', y_mean)
         call load_dataset_1d(file_id, 'scaler/x_std', x_std)
         call load_dataset_1d(file_id, 'scaler/y_std', y_std)
+
+        ! Read architecture information: layer sizes and activation IDs
+        call load_dataset_1d_int(file_id, 'architecture/layer_sizes', arch_layer_sizes)
+        call load_dataset_1d_int(file_id, 'architecture/activations', activation_ids)
+
+        ! Initialize network structure from metadata
+        call initialize_network(arch_layer_sizes)
+
+        ! Assign activation functions based on activation IDs:
+        ! 0 -> linear (no_activation)
+        ! 1 -> relu
+        ! 2 -> tanh
+        ! 3 -> elu
+        network_depth = size(arch_layer_sizes) - 1
+        if (size(activation_ids) /= network_depth) then
+            print *, 'Error: activation_ids length mismatch. Expected ', network_depth, ' got ', size(activation_ids)
+            stop 'Activation metadata mismatch.'
+        end if
+
+        do i = 1, network_depth
+            select case (activation_ids(i))
+            case (0)
+                layer_activations(i)%func => no_activation
+            case (1)
+                layer_activations(i)%func => relu_fn
+            case (2)
+                layer_activations(i)%func => tanh_fn
+            case (3)
+                layer_activations(i)%func => elu_fn
+            case default
+                print *, 'Error: Unknown activation ID at layer ', i, ': ', activation_ids(i)
+                stop 'Unknown activation ID in metadata.'
+            end select
+        end do
 
         call h5fclose_f(file_id, hdferr)
         if (hdferr /= 0) then
@@ -293,6 +329,48 @@ contains
         call h5sclose_f(dataspace_id, hdferr)
         call h5dclose_f(dataset_id, hdferr)
     end subroutine load_dataset_1d
+
+    !------------------------------------------------------------
+    ! Load a 1D integer dataset from the HDF5 file
+    !------------------------------------------------------------
+    subroutine load_dataset_1d_int(file_id, dataset_name, data)
+        integer(hid_t), intent(in) :: file_id
+        character(len=*), intent(in) :: dataset_name
+        integer, allocatable, intent(out) :: data(:)
+
+        integer(hid_t) :: dataset_id, dataspace_id
+        integer :: hdferr
+        integer(HSIZE_T) :: dims(1), maxdims(1)
+
+        call h5dopen_f(file_id, dataset_name, dataset_id, hdferr)
+        if (hdferr /= 0) then
+            print *, 'Error opening integer dataset:', dataset_name
+            stop 'Error opening integer dataset.'
+        end if
+
+        call h5dget_space_f(dataset_id, dataspace_id, hdferr)
+        if (hdferr /= 0) then
+            print *, 'Error getting dataspace for integer dataset:', dataset_name
+            stop 'Error getting dataspace for integer dataset.'
+        end if
+
+        call h5sget_simple_extent_dims_f(dataspace_id, dims, maxdims, hdferr)
+        if (hdferr < 0) then
+            print *, 'Error getting dimensions for integer dataset:', dataset_name
+            stop 'Error getting dimensions for integer dataset.'
+        end if
+
+        allocate(data(dims(1)))
+
+        call h5dread_f(dataset_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
+        if (hdferr /= 0) then
+            print *, 'Error reading integer dataset:', dataset_name
+            stop 'Error reading integer dataset.'
+        end if
+
+        call h5sclose_f(dataspace_id, hdferr)
+        call h5dclose_f(dataset_id,  hdferr)
+    end subroutine load_dataset_1d_int
 
     !------------------------------------------------------------
     ! Standardization and unstandardization routines

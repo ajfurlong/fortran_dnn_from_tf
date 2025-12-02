@@ -1,12 +1,14 @@
 # Changelog
 
-## [1.4.1] - 2025-01-18
+## [1.5.0] - 2025-12-02
 ### Added
-- N/A
+- The ability to load model architectures automatically using information now in the metadata.h5 format rules
+- User does not need to define architectures manually anymore
 
 ### Changed
 - Simplified real precision handling throughout dnn_module.f90 and read_hdf5_module.f90
-- main.f90 and metrics_module.f90 remain unchanged
+- Only load_metadata() and load_weights() are strictly needed in terms of model architecture definitions
+- A specified format is REQUIRED for the metadata.h5 files, which allows for autoloading to work
 
 ### Fixed
 - Strengthened the brittle precision logic
